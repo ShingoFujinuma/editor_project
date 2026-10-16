@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>editor</title>
+    <link rel="stylesheet" href="css/editor.css">
+</head>
+
+<body>
+
+    <div id="editor-container">
+    
+        <div id="canvas-stage">
+    
+            <canvas
+                id="game"
+                width="1280"
+                height="720"
+            ></canvas>
+    
+            <aside id="side-panel">
+    
+                <div class="panel-header">
+                    <span>Editor controls</span>
+    
+                    <button
+                        id="toggle-panel-button"
+                        type="button"
+                        aria-label="操作パネルを折りたたむ"
+                    >
+                        ×
+                    </button>
+                </div>
+    
+                <section
+                    class="control-section"
+                    id="note-type-controls"
+                >
+                    <h2>ノーツ/選択 (Q/W/E/R)</h2>
+    
+                    <label class="control-option">
+                        <input
+                            type="radio"
+                            name="note-base-type"
+                            id="note-type-tap"
+                            value="tap"
+                            checked
+                        >
+                        タップ
+                    </label>
+    
+                    <label class="control-option">
+                        <input
+                            type="radio"
+                            name="note-base-type"
+                            id="note-type-hold"
+                            value="hold"
+                        >
+                        ホールド
+                    </label>
+
+                    <label class="control-option">
+                        <input
+                            type="radio"
+                            name="note-base-type"
+                            id="note-type-select"
+                            value="select"
+                            >
+                            選択
+                    </label>
+    
+                    <label class="control-option">
+                        <input
+                            type="checkbox"
+                            id="note-critical-checkbox"
+                        >
+                        クリティカル
+                    </label>
+    
+                    <div id="selected-note-type-display">
+                        通常タップ
+                    </div>
+                </section>
+
+                <section class="control-section">
+                    <h2>選択操作</h2>
+                
+                    <div class="control-row">
+                        <button
+                            id="copy-notes-button"
+                            type="button"
+                        >
+                            コピー
+                        </button>
+                
+                        <button
+                            id="cut-notes-button"
+                            type="button"
+                        >
+                            切り取り
+                        </button>
+                
+                        <button
+                            id="paste-notes-button"
+                            type="button"
+                        >
+                            貼り付け
+                        </button>
+                    </div>
+                
+                    <div class="control-row">
+                        <button
+                            id="flip-horizontal-button"
+                            type="button"
+                        >
+                            左右反転
+                        </button>
+                
+                        <button
+                            id="flip-vertical-button"
+                            type="button"
+                        >
+                            上下反転
+                        </button>
+                    </div>
+                
+                    <button
+                        id="toggle-selected-critical-button"
+                        type="button"
+                        class="wide-button"
+                    >
+                        クリティカル切り替え
+                    </button>
+                
+                    <button
+                        id="delete-selected-notes-button"
+                        type="button"
+                        class="wide-button"
+                    >
+                        選択ノーツを削除
+                    </button>
+                
+                    <div id="selection-status">
+                        選択中: 0
+                    </div>
+                </section>
+
+                <section class="control-section">
+                    <h2>プレビュー音</h2>
+                
+                    <label class="control-option">
+                        <input
+                            type="checkbox"
+                            id="metronome-enabled-checkbox"
+                            checked
+                        >
+                        メトロノーム
+                    </label>
+                
+                    <label class="control-option">
+                        <input
+                            type="checkbox"
+                            id="answer-enabled-checkbox"
+                            checked
+                        >
+                        アンサー音
+                    </label>
+                
+                    <label class="control-field">
+                        <span>メトロノーム音量</span>
+                    
+                        <input
+                            type="range"
+                            id="metronome-volume-slider"
+                            min="0"
+                            max="10"
+                            step="0.05"
+                            value="5"
+                        >
+                    
+                        <span id="metronome-volume-display">
+                            1.00
+                        </span>
+                    </label>
+                    
+                    <label class="control-field">
+                        <span>アンサー音量</span>
+                    
+                        <input
+                            type="range"
+                            id="answer-volume-slider"
+                            min="0"
+                            max="10"
+                            step="0.05"
+                            value="5"
+                        >
+                    
+                        <span id="answer-volume-display">
+                            1.00
+                        </span>
+                    </label>
+
+                    <label class="control-field">
+                        <span>音声オフセット</span>
+                    
+                        <input
+                            type="number"
+                            id="preview-offset-input"
+                            min="-1000"
+                            max="1000"
+                            step="1"
+                            value="0"
+                        >
+                    
+                        <span>ms</span>
+                    </label>
+                    
+                    <div class="control-row">
+                        <button
+                            id="preview-offset-minus-button"
+                            type="button"
+                        >
+                            -10 ms
+                        </button>
+                    
+                        <button
+                            id="preview-offset-reset-button"
+                            type="button"
+                        >
+                            0 ms
+                        </button>
+                    
+                        <button
+                            id="preview-offset-plus-button"
+                            type="button"
+                        >
+                            +10 ms
+                        </button>
+                    </div>
+                    
+                    <div id="preview-offset-description">
+                        正の値で遅く、負の値で早く再生
+                    </div>
+                </section>
+
+                <section class="control-section">
+                    <h2>編集履歴</h2>
+                
+                    <div class="control-row">
+                        <button
+                            id="undo-button"
+                            type="button"
+                            disabled
+                        >
+                            元に戻す
+                        </button>
+                
+                        <button
+                            id="redo-button"
+                            type="button"
+                            disabled
+                        >
+                            やり直す
+                        </button>
+                    </div>
+                
+                    <div id="history-status">
+                        元に戻せる操作: 0
+                    </div>
+                </section>
+    
+                <section class="control-section">
+                    <h2>初期設定</h2>
+    
+                    <label class="control-field">
+                        <span>初期BPM</span>
+    
+                        <input
+                            id="initial-bpm-input"
+                            type="number"
+                            min="1"
+                            max="9999"
+                            step="0.01"
+                            value="120"
+                        >
+                    </label>
+    
+                    <div class="signature-input">
+                        <span>初期拍子</span>
+    
+                        <input
+                            id="time-signature-numerator"
+                            type="number"
+                            min="1"
+                            max="32"
+                            step="1"
+                            value="4"
+                        >
+    
+                        <span>/</span>
+    
+                        <select id="time-signature-denominator">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="4" selected>4</option>
+                            <option value="8">8</option>
+                            <option value="16">16</option>
+                        </select>
+                    </div>
+    
+                    <button
+                        id="apply-initial-settings-button"
+                        type="button"
+                        class="wide-button"
+                    >
+                        初期設定を反映
+                    </button>
+                </section>
+    
+                <section class="control-section">
+                    <h2>BPM変更</h2>
+    
+                    <label class="control-field">
+                        <span>変更後のBPM</span>
+    
+                        <input
+                            id="bpm-event-input"
+                            type="number"
+                            min="1"
+                            max="9999"
+                            step="0.01"
+                            value="120"
+                        >
+                    </label>
+    
+                    <div class="control-row">
+                        <button
+                            id="set-bpm-event-button"
+                            type="button"
+                        >
+                            配置
+                        </button>
+    
+                        <button
+                            id="remove-bpm-event-button"
+                            type="button"
+                        >
+                            削除
+                        </button>
+                    </div>
+                </section>
+    
+                <section class="control-section">
+                    <h2>拍子変更</h2>
+    
+                    <div class="signature-input">
+                        <input
+                            id="signature-event-numerator"
+                            type="number"
+                            min="1"
+                            max="32"
+                            step="1"
+                            value="4"
+                        >
+    
+                        <span>/</span>
+    
+                        <select
+                            id="signature-event-denominator"
+                        >
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="4" selected>4</option>
+                            <option value="8">8</option>
+                            <option value="16">16</option>
+                        </select>
+                    </div>
+    
+                    <div class="control-row">
+                        <button
+                            id="set-signature-event-button"
+                            type="button"
+                        >
+                            配置
+                        </button>
+    
+                        <button
+                            id="remove-signature-event-button"
+                            type="button"
+                        >
+                            削除
+                        </button>
+                    </div>
+                </section>
+    
+                <section class="control-section">
+                    <h2>グリッド (Alt+ホイール)</h2>
+    
+                    <div class="control-row">
+                        <button
+                            id="grid-down-button"
+                            type="button"
+                        >
+                            粗く
+                        </button>
+    
+                        <span id="grid-display">
+                            8分音符
+                        </span>
+    
+                        <button
+                            id="grid-up-button"
+                            type="button"
+                        >
+                            細かく
+                        </button>
+                    </div>
+                </section>
+    
+                <section class="control-section">
+                    <h2>スクロール速度 (Ctrl+ホイール)</h2>
+    
+                    <div class="control-row">
+                        <button
+                            id="speed-down-button"
+                            type="button"
+                        >
+                            遅く
+                        </button>
+    
+                        <span id="speed-display">
+                            600 px/s
+                        </span>
+    
+                        <button
+                            id="speed-up-button"
+                            type="button"
+                        >
+                            速く
+                        </button>
+                    </div>
+                </section>
+
+                <section class="control-section">
+                    <h2>エディター設定</h2>
+                
+                    <button
+                        id="reset-editor-settings-button"
+                        type="button"
+                        class="wide-button"
+                    >
+                        設定を初期値に戻す
+                    </button>
+                </section>
+    
+                <section class="control-section">
+                    <h2>ファイル (Ctrl+S)</h2>
+    
+                    <button
+                        id="save-chart-button"
+                        type="button"
+                        class="wide-button primary-button"
+                    >
+                        名前を付けて保存
+                    </button>
+    
+                    <div id="save-status">
+                        未保存
+                    </div>
+                </section>
+    
+            </aside>
+    
+            <button
+                id="open-panel-button"
+                type="button"
+                aria-label="操作パネルを表示する"
+                hidden
+            >
+                ☰
+            </button>
+    
+        </div>
+    
+    </div>
+    
+    <script
+        type="module"
+        src="js/main.js"
+    ></script>
+    
+
+</body>
+</html>

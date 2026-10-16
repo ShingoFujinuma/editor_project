@@ -1,0 +1,300 @@
+html,
+body {
+    margin: 0;
+    width: 100%;
+    min-height: 100%;
+    background: #222;
+}
+
+body {
+    font-family: sans-serif;
+    overflow: auto;
+}
+
+#editor-container {
+    box-sizing: border-box;
+
+    width: min(1280px, calc(100vw - 24px));
+    margin: 12px auto;
+}
+
+#canvas-stage {
+    position: relative;
+
+    width: 100%;
+    aspect-ratio: 16 / 9;
+
+    overflow: hidden;
+
+    background: #111;
+    border: 3px solid black;
+    box-sizing: border-box;
+}
+
+canvas {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    background: #888;
+}
+
+#side-panel {
+    position: absolute;
+
+    top: 12px;
+    right: 12px;
+    bottom: 12px;
+
+    box-sizing: border-box;
+    width: 400px;
+
+    padding: 12px;
+
+    color: white;
+    background: rgba(28, 28, 32, 0.94);
+
+    border: 1px solid #666;
+    border-radius: 8px;
+
+    box-shadow:
+        0 4px 18px
+        rgba(0, 0, 0, 0.55);
+
+    overflow-y: auto;
+    overscroll-behavior: contain;
+
+    z-index: 10;
+}
+
+.panel-header {
+    position: sticky;
+    top: -12px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin: -12px -12px 10px;
+    padding: 10px 12px;
+
+    font-size: 18px;
+    font-weight: bold;
+
+    background: #29292f;
+    border-bottom: 1px solid #555;
+
+    z-index: 2;
+}
+
+#toggle-panel-button {
+    width: 30px;
+    height: 30px;
+
+    padding: 0;
+
+    color: white;
+    background: #555;
+
+    border: 1px solid #777;
+    border-radius: 4px;
+
+    cursor: pointer;
+}
+
+.control-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    margin-bottom: 12px;
+    padding: 10px;
+
+    background: rgba(255, 255, 255, 0.05);
+
+    border: 1px solid #505057;
+    border-radius: 6px;
+}
+
+.control-section h2 {
+    margin: 0 0 4px;
+
+    font-size: 14px;
+    font-weight: bold;
+
+    color: #9ed8ff;
+}
+
+.control-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.control-row > * {
+    flex: 1;
+}
+
+.control-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.control-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    cursor: pointer;
+    user-select: none;
+}
+
+.signature-input {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.signature-input input,
+.signature-input select {
+    flex: 1;
+    min-width: 0;
+}
+
+#side-panel button,
+#side-panel input,
+#side-panel select {
+    box-sizing: border-box;
+    font: inherit;
+}
+
+#side-panel button {
+    min-height: 34px;
+    padding: 6px 9px;
+
+    color: white;
+    background: #4c4c55;
+
+    border: 1px solid #73737d;
+    border-radius: 4px;
+
+    cursor: pointer;
+}
+
+#side-panel button:hover {
+    background: #60606b;
+}
+
+#side-panel button:disabled {
+    color: #888;
+    background: #35353b;
+    cursor: default;
+}
+
+#side-panel input[type="number"],
+#side-panel select {
+    width: 90px;
+    min-height: 32px;
+    padding: 4px 6px;
+
+    color: white;
+    background: #29292f;
+
+    border: 1px solid #666;
+    border-radius: 4px;
+}
+
+#side-panel input[type="radio"],
+#side-panel input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.wide-button {
+    width: 100%;
+}
+
+.primary-button {
+    background: #316ca5 !important;
+    border-color: #62a3df !important;
+}
+
+.primary-button:hover {
+    background: #3c7fbd !important;
+}
+
+#grid-display,
+#speed-display,
+#selected-note-type-display,
+#save-status {
+    padding: 6px 8px;
+
+    text-align: center;
+
+    background: #34343b;
+    border: 1px solid #62626b;
+    border-radius: 4px;
+}
+
+#selected-note-type-display {
+    font-weight: bold;
+}
+
+#save-status.saved {
+    color: #b8ffb8;
+    border-color: #69c969;
+}
+
+#save-status.error {
+    color: #ffaaaa;
+    border-color: #e07070;
+}
+
+.shortcut-section {
+    color: #ccc;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+#open-panel-button {
+    position: absolute;
+
+    top: 14px;
+    right: 14px;
+
+    width: 44px;
+    height: 44px;
+
+    padding: 0;
+
+    color: white;
+    background: rgba(40, 40, 46, 0.92);
+
+    border: 1px solid #777;
+    border-radius: 6px;
+
+    font-size: 22px;
+    cursor: pointer;
+
+    z-index: 11;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 900px) {
+    #side-panel {
+        top: 8px;
+        right: 8px;
+        bottom: 8px;
+
+        width: min(
+            300px,
+            calc(100% - 16px)
+        );
+    }
+}
