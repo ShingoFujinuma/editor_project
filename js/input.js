@@ -39,7 +39,8 @@ import {
     pasteClipboardNotes,
     deleteSelectedNotes,
     flipSelectedNotesHorizontally,
-    flipSelectedNotesVertically
+    flipSelectedNotesVertically,
+    selectNotes
 } from "./chart.js";
 
 import {
@@ -89,6 +90,24 @@ const ALT_FOCUS_GUARD_MS = 300;
 
 let editorAltKeyPressed = false;
 let lastAltReleaseTime = 0;
+
+const DRAG_SELECTION_THRESHOLD = 5;
+
+const dragSelectionState = {
+    active: false,
+
+    pointerId: null,
+
+    startX: 0,
+    startY: 0,
+
+    currentX: 0,
+    currentY: 0,
+
+    moved: false,
+
+    append: false
+};
 
 function getCanvasMousePosition(event) {
     const rect =
@@ -550,12 +569,15 @@ function handleKeyDown(event) {
     
         return;
     }
-    ``
 
-    if (event.code === "Escape") {
+    if (
+        event.code === "Escape"
+    ) {
         state.placement.holdStart =
             null;
-
+    
+        cancelDragSelection(event);
+    
         return;
     }
 }
@@ -1173,25 +1195,43 @@ function handleMouseDown(event) {
         return;
     }
 
-    if (event.button === 0) {
-        if (
-            state.placement.baseType
+    /*
+     * 選択モードの左クリックは
+     * pointerイベント側で処理する。
+     */
+    if (
+        event.button === 0 &&
+        state.placement.baseType
             === "select"
-        ) {
-            selectNoteFromMouse(event);
-        } else {
-            placeNoteFromMouse(event);
-        }
-
+    ) {
         return;
     }
 
-    if (
-        event.button === 2 &&
-        state.placement.baseType
-            !== "select"
-    ) {
+    if (event.button === 0) {
+        placeNoteFromMouse(event);
+        return;
+    }
+
+    if (event.button === 2) {
         removeNoteFromMouse(event);
+    }
+}
+
+function handlePointerDown(
+    event
+) {
+    if (
+        event.button === 0 &&
+        state.placement.baseType
+            === "select"
+    ) {
+        event.preventDefault();
+
+        focusCanvas();
+
+        beginDragSelection(
+            event
+        );
     }
 }
 
@@ -1351,9 +1391,27 @@ function isTextEditingElement(
 export function initializeInput() {
     canvas.addEventListener(
         "pointerdown",
-        () => {
-            focusCanvas();
-        }
+        handlePointerDown
+    );
+
+    canvas.addEventListener(
+        "pointermove",
+        updateDragSelection
+    );
+
+    canvas.addEventListener(
+        "pointerup",
+        finishDragSelection
+    );
+
+    canvas.addEventListener(
+        "pointercancel",
+        cancelDragSelection
+    );
+
+    canvas.addEventListener(
+        "mousedown",
+        handleMouseDown
     );
 
     canvas.addEventListener(
@@ -1362,11 +1420,6 @@ export function initializeInput() {
         {
             passive: false
         }
-    );
-
-    canvas.addEventListener(
-        "mousedown",
-        handleMouseDown
     );
 
     canvas.addEventListener(
@@ -1472,4 +1525,430 @@ function wasAltRecentlyReleased() {
         - lastAltReleaseTime
         <= ALT_FOCUS_GUARD_MS
     );
+}
+
+function rectanglesIntersect(
+    first,
+    second
+) {
+    return (
+        first.left <= second.right &&
+        first.right >= second.left &&
+        first.top <= second.bottom &&
+        first.bottom >= second.top
+    );
+}
+
+function createNormalizedRectangle(
+    startX,
+    startY,
+    endX,
+    endY
+) {
+    return {
+        left:
+            Math.min(
+                startX,
+                endX
+            ),
+
+        top:
+            Math.min(
+                startY,
+                endY
+            ),
+
+        right:
+            Math.max(
+                startX,
+                endX
+            ),
+
+        bottom:
+            Math.max(
+                startY,
+                endY
+            )
+    };
+}
+
+function getTapNoteScreenRect(
+    note,
+    currentTime
+) {
+    const x =
+        getLaneX(note.lane);
+
+    const y =
+        timeToY(
+            note.time,
+            currentTime,
+            note.lane
+        );
+
+    if (
+        x === null ||
+        !Number.isFinite(y)
+    ) {
+        return null;
+    }
+
+    if (
+        !isYVisibleInLane(
+            y,
+            note.lane,
+            NOTE_HEIGHT / 2
+        )
+    ) {
+        return null;
+    }
+
+    return {
+        left:
+            x - NOTE_WIDTH / 2,
+
+        right:
+            x + NOTE_WIDTH / 2,
+
+        top:
+            y - NOTE_HEIGHT / 2,
+
+        bottom:
+            y + NOTE_HEIGHT / 2
+    };
+}
+
+function getHoldNoteScreenRect(
+    note,
+    currentTime
+) {
+    const x =
+        getLaneX(note.lane);
+
+    const startY =
+        timeToY(
+            note.time,
+            currentTime,
+            note.lane
+        );
+
+    const endY =
+        timeToY(
+            note.endTime,
+            currentTime,
+            note.lane
+        );
+
+    if (
+        x === null ||
+        !Number.isFinite(startY) ||
+        !Number.isFinite(endY)
+    ) {
+        return null;
+    }
+
+    const visibleRange =
+        getVisibleHoldBodyRange(
+            startY,
+            endY,
+            note.lane
+        );
+
+    if (!visibleRange) {
+        return null;
+    }
+
+    return {
+        left:
+            x - NOTE_WIDTH / 2,
+
+        right:
+            x + NOTE_WIDTH / 2,
+
+        top:
+            visibleRange.top
+            - NOTE_HEIGHT / 2,
+
+        bottom:
+            visibleRange.bottom
+            + NOTE_HEIGHT / 2
+    };
+}
+
+function getNoteScreenRect(
+    note,
+    currentTime
+) {
+    if (
+        !note ||
+        note.type === "_bpm"
+    ) {
+        return null;
+    }
+
+    if (isHoldNote(note)) {
+        return getHoldNoteScreenRect(
+            note,
+            currentTime
+        );
+    }
+
+    return getTapNoteScreenRect(
+        note,
+        currentTime
+    );
+}
+
+function findNotesInsideRectangle(
+    selectionRectangle
+) {
+    const track =
+        getTrack();
+
+    if (
+        !track ||
+        !state.chart
+    ) {
+        return [];
+    }
+
+    const selectedNotes = [];
+
+    for (
+        const note
+        of state.chart.notes
+    ) {
+        if (note.type === "_bpm") {
+            continue;
+        }
+
+        const noteRectangle =
+            getNoteScreenRect(
+                note,
+                track.currentTime
+            );
+
+        if (!noteRectangle) {
+            continue;
+        }
+
+        if (
+            rectanglesIntersect(
+                selectionRectangle,
+                noteRectangle
+            )
+        ) {
+            selectedNotes.push(note);
+        }
+    }
+
+    return selectedNotes;
+}
+
+function beginDragSelection(
+    event
+) {
+    if (
+        event.button !== 0 ||
+        state.currentScene
+            !== SCENE.EDITOR ||
+        state.placement.baseType
+            !== "select"
+    ) {
+        return false;
+    }
+
+    const mouse =
+        getCanvasMousePosition(
+            event
+        );
+
+    dragSelectionState.active =
+        true;
+
+    dragSelectionState.pointerId =
+        event.pointerId;
+
+    dragSelectionState.startX =
+        mouse.x;
+
+    dragSelectionState.startY =
+        mouse.y;
+
+    dragSelectionState.currentX =
+        mouse.x;
+
+    dragSelectionState.currentY =
+        mouse.y;
+
+    dragSelectionState.moved =
+        false;
+
+    dragSelectionState.append =
+        event.ctrlKey;
+
+    state.selection.dragRect =
+        null;
+
+    canvas.setPointerCapture(
+        event.pointerId
+    );
+
+    return true;
+}
+
+function updateDragSelection(
+    event
+) {
+    if (
+        !dragSelectionState.active ||
+        event.pointerId
+            !== dragSelectionState.pointerId
+    ) {
+        return;
+    }
+
+    const mouse =
+        getCanvasMousePosition(
+            event
+        );
+
+    dragSelectionState.currentX =
+        mouse.x;
+
+    dragSelectionState.currentY =
+        mouse.y;
+
+    const moveX =
+        mouse.x
+        - dragSelectionState.startX;
+
+    const moveY =
+        mouse.y
+        - dragSelectionState.startY;
+
+    const distance =
+        Math.hypot(
+            moveX,
+            moveY
+        );
+
+    if (
+        distance
+        >= DRAG_SELECTION_THRESHOLD
+    ) {
+        dragSelectionState.moved =
+            true;
+    }
+
+    if (!dragSelectionState.moved) {
+        return;
+    }
+
+    const rectangle =
+        createNormalizedRectangle(
+            dragSelectionState.startX,
+            dragSelectionState.startY,
+            dragSelectionState.currentX,
+            dragSelectionState.currentY
+        );
+
+    state.selection.dragRect =
+        rectangle;
+}
+
+function finishDragSelection(
+    event
+) {
+    if (
+        !dragSelectionState.active ||
+        event.pointerId
+            !== dragSelectionState.pointerId
+    ) {
+        return;
+    }
+
+    const wasMoved =
+        dragSelectionState.moved;
+
+    const shouldAppend =
+        dragSelectionState.append;
+
+    const selectionRectangle =
+        state.selection.dragRect;
+
+    dragSelectionState.active =
+        false;
+
+    dragSelectionState.pointerId =
+        null;
+
+    state.selection.dragRect =
+        null;
+
+    if (
+        canvas.hasPointerCapture(
+            event.pointerId
+        )
+    ) {
+        canvas.releasePointerCapture(
+            event.pointerId
+        );
+    }
+
+    if (!wasMoved) {
+        selectNoteFromMouse(
+            event
+        );
+
+        return;
+    }
+
+    if (!selectionRectangle) {
+        return;
+    }
+
+    const notes =
+        findNotesInsideRectangle(
+            selectionRectangle
+        );
+
+    selectNotes(
+        notes,
+        shouldAppend
+    );
+
+    updateSelectionControls();
+}
+
+function cancelDragSelection(
+    event
+) {
+    if (
+        !dragSelectionState.active
+    ) {
+        return;
+    }
+
+    if (
+        event.pointerId !== undefined &&
+        dragSelectionState.pointerId
+            !== null &&
+        event.pointerId
+            !== dragSelectionState.pointerId
+    ) {
+        return;
+    }
+
+    dragSelectionState.active =
+        false;
+
+    dragSelectionState.pointerId =
+        null;
+
+    dragSelectionState.moved =
+        false;
+
+    state.selection.dragRect =
+        null;
 }

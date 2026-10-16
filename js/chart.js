@@ -1758,3 +1758,46 @@ export function findInvalidNoteOverlaps() {
 
     return problems;
 }
+
+export function selectNotes(
+    notes,
+    append = false
+) {
+    const validNotes =
+        notes.filter(note => {
+            return (
+                note &&
+                note.type !== "_bpm"
+            );
+        });
+
+    if (!append) {
+        state.selection.notes =
+            validNotes;
+
+        state.selection.anchorNote =
+            validNotes[0] ?? null;
+
+        return;
+    }
+
+    const selectedSet =
+        new Set(
+            state.selection.notes
+        );
+
+    for (const note of validNotes) {
+        selectedSet.add(note);
+    }
+
+    state.selection.notes =
+        Array.from(selectedSet);
+
+    if (
+        !state.selection.anchorNote &&
+        state.selection.notes.length > 0
+    ) {
+        state.selection.anchorNote =
+            state.selection.notes[0];
+    }
+}

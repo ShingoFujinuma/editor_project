@@ -39,7 +39,8 @@ export const state = {
     selection: {
         notes: [],
         clipboard: [],
-        anchorNote: null
+        anchorNote: null,
+        dragRect: null
     },
 
     audioPreview: {

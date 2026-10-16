@@ -1077,6 +1077,54 @@ function drawSelectionOutline(
     ctx.restore();
 }
 
+function drawDragSelectionRectangle() {
+    const rectangle =
+        state.selection.dragRect;
+
+    if (!rectangle) {
+        return;
+    }
+
+    const width =
+        rectangle.right
+        - rectangle.left;
+
+    const height =
+        rectangle.bottom
+        - rectangle.top;
+
+    ctx.save();
+
+    ctx.fillStyle =
+        "rgba(80, 170, 255, 0.18)";
+
+    ctx.strokeStyle =
+        "rgba(110, 200, 255, 0.95)";
+
+    ctx.lineWidth = 2;
+
+    ctx.setLineDash([
+        8,
+        5
+    ]);
+
+    ctx.fillRect(
+        rectangle.left,
+        rectangle.top,
+        width,
+        height
+    );
+
+    ctx.strokeRect(
+        rectangle.left,
+        rectangle.top,
+        width,
+        height
+    );
+
+    ctx.restore();
+}
+
 function drawNotes() {
     const track =
         getTrack();
@@ -1345,4 +1393,6 @@ export function drawEditor() {
     drawPendingHoldStart();
     drawJudgeLine();
     drawEditorInfo();
+
+    drawDragSelectionRectangle();
 }
