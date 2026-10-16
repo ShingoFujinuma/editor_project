@@ -1263,7 +1263,7 @@ function drawEditorInfo() {
     );
 
     ctx.fillText(
-        `F: flip horizontal / G: flip vertical`,
+        `F: Flip horizontal / G: Flip vertical`,
         20,
         340
     )

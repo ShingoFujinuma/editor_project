@@ -8,7 +8,7 @@ import {
 
 import {
     loadAssets,
-    loadChart
+    createEmptyChart
 } from "./loader.js";
 
 import {
@@ -40,6 +40,10 @@ import{
 import {
     loadEditorSettings
 } from "./settings.js";
+
+import {
+    showError
+} from "./notifications.js";
 
 function updateEditor() {
     // 今後の選択処理などを追加する
@@ -82,7 +86,9 @@ async function startEditor() {
 
     try {
         await loadAssets();
-        await loadChart();
+
+        state.chart =
+            createEmptyChart();
 
         prepareChartData();
 
@@ -105,6 +111,11 @@ async function startEditor() {
         console.error(
             "エディターの起動に失敗しました",
             error
+        );
+
+        showError(
+            error,
+            "エディターを起動できませんでした"
         );
     }
 }

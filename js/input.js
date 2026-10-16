@@ -64,7 +64,8 @@ import {
     handleDeleteSelectedNotes,
     handleFlipHorizontal,
     handleFlipVertical,
-    handleToggleSelectedCritical
+    handleToggleSelectedCritical,
+    handleOpenFile
 } from "./ui.js";
 
 import {
@@ -78,8 +79,16 @@ import {
     commitHistory
 } from "./history.js";
 
+import {
+    showWarningOnce
+} from "./notifications.js";
+
 const NOTE_HIT_PADDING_X = 8;
 const NOTE_HIT_PADDING_Y = 8;
+const ALT_FOCUS_GUARD_MS = 300;
+
+let editorAltKeyPressed = false;
+let lastAltReleaseTime = 0;
 
 function getCanvasMousePosition(event) {
     const rect =
@@ -214,6 +223,12 @@ async function togglePlayback() {
         getTrack();
 
     if (!track) {
+        console.log(
+            "先に音源ファイルを読み込んでください"
+        );
+
+        // handleOpenFile();
+
         return;
     }
 
@@ -269,6 +284,18 @@ function toggleCriticalPlacement() {
     updateNoteTypeControls();
 }
 
+function isButtonElement(element) {
+    if (!element) {
+        return false;
+    }
+
+    return (
+        element.tagName
+            ?.toLowerCase()
+        === "button"
+    );
+}
+
 function handleKeyDown(event) {
     if (
         state.currentScene
@@ -281,6 +308,18 @@ function handleKeyDown(event) {
         isTextEditingElement(
             document.activeElement
         );
+
+    if(
+        event.code === "AltLeft" ||
+        event.code === "AltRight"
+    ){
+        if(!isEditingText){
+            editorAltKeyPressed=true;
+            event.preventDefault();
+            focusCanvas();
+        }
+        return;
+    }
 
     if (
         event.ctrlKey &&
@@ -352,6 +391,18 @@ function handleKeyDown(event) {
         event.preventDefault();
     
         handlePasteSelectedNotes();
+    
+        return;
+    }
+
+    if (
+        event.ctrlKey &&
+        event.code === "KeyO" &&
+        !isEditingText
+    ) {
+        event.preventDefault();
+    
+        handleOpenFile();
     
         return;
     }
@@ -444,17 +495,6 @@ function handleKeyDown(event) {
     ) {
         event.preventDefault();
     
-        selectSelectionMode();
-    
-        return;
-    }
-    
-    if (
-        event.code === "KeyR" &&
-        !event.repeat
-    ) {
-        event.preventDefault();
-    
         if (
             state.placement.baseType
             === "select"
@@ -466,23 +506,73 @@ function handleKeyDown(event) {
     
         return;
     }
-
+    
     if (
-        event.code === "Space" &&
+        event.code === "KeyR" &&
         !event.repeat
     ) {
         event.preventDefault();
-
-        togglePlayback();
-
+    
+        selectSelectionMode();
+    
         return;
     }
+
+    if (
+        event.code === "Space" &&
+        !event.repeat &&
+        !isEditingText
+    ) {
+        const activeElement =
+            document.activeElement;
+    
+        const buttonIsFocused =
+            isButtonElement(
+                activeElement
+            );
+    
+        const altFocusGuardActive =
+            editorAltKeyPressed ||
+            wasAltRecentlyReleased();
+    
+        if (
+            buttonIsFocused &&
+            !altFocusGuardActive
+        ) {
+            return;
+        }
+    
+        event.preventDefault();
+    
+        focusCanvas();
+    
+        togglePlayback();
+    
+        return;
+    }
+    ``
 
     if (event.code === "Escape") {
         state.placement.holdStart =
             null;
 
         return;
+    }
+}
+
+function handleKeyUp(event) {
+    if (
+        event.code === "AltLeft" ||
+        event.code === "AltRight"
+    ) {
+        editorAltKeyPressed = false;
+
+        lastAltReleaseTime =
+            performance.now();
+
+        event.preventDefault();
+
+        focusCanvas();
     }
 }
 
@@ -583,19 +673,19 @@ function placeTapNote(position) {
             type
         );
 
-    if (added) {
-        console.log(
-            "タップノーツを配置しました",
-            {
-                lane: position.lane,
-                tick: position.tick,
-                type
-            }
+    if (!added) {
+        showWarningOnce(
+            "note-placement-conflict",
+            "同じ位置のノーツ、またはホールドの途中には配置できません。",
+            "ノーツを配置できません"
         );
-        refreshPreviewEvents();
-        markChartAsUnsaved();
-        commitHistory();
+
+        return;
     }
+
+    refreshPreviewEvents();
+    markChartAsUnsaved();
+    commitHistory();
 }
 
 function placeHoldNote(position) {
@@ -636,13 +726,23 @@ function placeHoldNote(position) {
     const type =
         getPlacementNoteType();
 
-    const added =
+        const added =
         addHoldNote(
             pending.lane,
             pending.tick,
             position.tick,
             type
         );
+    
+    if (!added) {
+        showWarningOnce(
+            "hold-placement-conflict",
+            "既存のノーツまたはホールドと重なるため配置できません。",
+            "ホールドを配置できません"
+        );
+    
+        return;
+    }    
 
     if (added) {
         console.log(
@@ -1098,6 +1198,8 @@ function handleMouseDown(event) {
 function handleWheel(event) {
     event.preventDefault();
 
+    focusCanvas();
+
     if (
         state.currentScene
         !== SCENE.EDITOR
@@ -1121,11 +1223,16 @@ function handleWheel(event) {
         return;
     }
 
-    if (event.altKey) {
+    if (
+        event.altKey ||
+        editorAltKeyPressed
+    ) {
         changeGridDivision(
             direction
         );
-
+    
+        focusCanvas();
+    
         return;
     }
 
@@ -1243,14 +1350,9 @@ function isTextEditingElement(
 
 export function initializeInput() {
     canvas.addEventListener(
-        "mousedown",
-        handleMouseDown
-    );
-
-    canvas.addEventListener(
-        "contextmenu",
-        event => {
-            event.preventDefault();
+        "pointerdown",
+        () => {
+            focusCanvas();
         }
     );
 
@@ -1262,10 +1364,29 @@ export function initializeInput() {
         }
     );
 
+    canvas.addEventListener(
+        "mousedown",
+        handleMouseDown
+    );
+
+    canvas.addEventListener(
+        "contextmenu",
+        event => {
+            event.preventDefault();
+        }
+    );
+
     document.addEventListener(
         "keydown",
         handleKeyDown
     );
+
+    document.addEventListener(
+        "keyup",
+        handleKeyUp
+    );
+
+    focusCanvas();
 }
 
 function getNextGridTick(
@@ -1332,4 +1453,23 @@ function getNextGridTick(
 
     return targetGridIndex
         * gridTickSize;
+}
+
+function focusCanvas() {
+    if (
+        document.activeElement
+        !== canvas
+    ) {
+        canvas.focus({
+            preventScroll: true
+        });
+    }
+}
+
+function wasAltRecentlyReleased() {
+    return (
+        performance.now()
+        - lastAltReleaseTime
+        <= ALT_FOCUS_GUARD_MS
+    );
 }

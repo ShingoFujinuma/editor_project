@@ -56,6 +56,18 @@ import {
     clearEditorSettings
 } from "./settings.js";
 
+import {
+    hasLoadedTrack,
+    openNextFile,
+    replaceTrackFile
+} from "./file-open.js";
+
+import {
+    showError,
+    showSuccess,
+    showWarning
+} from "./notifications.js";
+
 const gridDownButton =
     document.getElementById(
         "grid-down-button"
@@ -299,6 +311,21 @@ const selectionStatus =
 const toggleSelectedCriticalButton =
     document.getElementById(
         "toggle-selected-critical-button"
+    );
+
+const openFileButton =
+    document.getElementById(
+        "open-file-button"
+    );
+
+const replaceTrackButton =
+    document.getElementById(
+        "replace-track-button"
+    );
+
+const loadedFileStatus =
+    document.getElementById(
+        "loaded-file-status"
     );
 
 const MIN_PREVIEW_OFFSET_MS = -1000;
@@ -693,6 +720,10 @@ export async function handleSaveChart() {
             "saved"
         );
 
+        showSuccess(
+            "譜面ファイルを保存しました"
+        );
+
         console.log(
             "譜面を保存しました",
             result
@@ -709,18 +740,14 @@ export async function handleSaveChart() {
             return;
         }
 
-        console.error(
-            "譜面の保存に失敗しました",
-            error
-        );
-
         updateSaveStatus(
             "保存エラー",
             "error"
         );
 
-        alert(
-            `譜面を保存できませんでした\n\n${error.message}`
+        showError(
+            error,
+            "譜面を保存できませんでした"
         );
     } finally {
         saveChartButton.disabled =
@@ -903,13 +930,30 @@ export function handlePasteSelectedNotes() {
     const baseTick =
         getCurrentEditorTick();
 
-    const pasted =
+    const result =
         pasteClipboardNotes(
             baseTick
         );
 
-    if (!pasted) {
+    if (result.pastedCount === 0) {
+        showWarning(
+            "貼り付け先に既存ノーツやホールドがあるため、ノーツを貼り付けられませんでした。",
+            "貼り付け失敗"
+        );
+
         return false;
+    }
+
+    if (result.skippedCount > 0) {
+        showWarning(
+            `${result.pastedCount}個を貼り付け、`
+            + `${result.skippedCount}個を重複のため省略しました。`,
+            "一部のノーツを省略しました"
+        );
+    } else {
+        showSuccess(
+            `${result.pastedCount}個のノーツを貼り付けました。`
+        );
     }
 
     refreshPreviewEvents();
@@ -941,6 +985,11 @@ export function handleFlipHorizontal() {
         flipSelectedNotesHorizontally();
 
     if (!flipped) {
+        showWarning(
+            "反転先に既存ノーツまたはホールドがあるため、左右反転できません。",
+            "左右反転できません"
+        );
+
         return false;
     }
 
@@ -957,6 +1006,11 @@ export function handleFlipVertical() {
         flipSelectedNotesVertically();
 
     if (!flipped) {
+        showWarning(
+            "反転先に既存ノーツまたはホールドがあるため、上下反転できません。",
+            "上下反転できません"
+        );
+
         return false;
     }
 
@@ -985,6 +1039,138 @@ export function handleToggleSelectedCritical() {
     updateSelectionControls();
 
     return true;
+}
+
+export function updateLoadedFileControls() {
+    const trackLoaded =
+        hasLoadedTrack();
+
+    if (trackLoaded) {
+        openFileButton.textContent =
+            "譜面を開く";
+    } else {
+        openFileButton.textContent =
+            "音源を開く";
+    }
+
+    replaceTrackButton.disabled =
+        !trackLoaded;
+
+    const trackName =
+        state.fileSession
+            .trackFileName
+        ?? "未読込";
+
+    const chartName =
+        state.fileSession
+            .chartFileName
+        ?? "新規譜面";
+
+    loadedFileStatus.innerHTML =
+        `音源: ${escapeHtml(trackName)}`
+        + "<br>"
+        + `譜面: ${escapeHtml(chartName)}`;
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
+}
+
+export async function handleOpenFile() {
+    openFileButton.disabled =
+        true;
+
+    try {
+        const openingTrack =
+            !hasLoadedTrack();
+
+        const opened =
+            await openNextFile();
+
+        if (!opened) {
+            return false;
+        }
+
+        updateLoadedFileControls();
+        updateTimingControls();
+        updateSelectionControls();
+
+        if (openingTrack) {
+            showSuccess(
+                "音源ファイルを読み込みました"
+            );
+        } else {
+            showSuccess(
+                "譜面ファイルを読み込みました"
+            );
+        }
+
+        return true;
+    } catch (error) {
+        showError(
+            error,
+            "ファイルを読み込めませんでした"
+        );
+
+        return false;
+    } finally {
+        openFileButton.disabled =
+            false;
+    }
+}
+
+async function handleReplaceTrack() {
+    replaceTrackButton.disabled =
+        true;
+
+    try {
+        const opened =
+            await replaceTrackFile();
+
+        if (!opened) {
+            return;
+        }
+
+        updateLoadedFileControls();
+        updateTimingControls();
+        updateSelectionControls();
+
+        markChartAsUnsaved();
+    } catch (error) {
+        console.error(
+            "音源を変更できませんでした",
+            error
+        );
+
+        alert(
+            "音源を変更できませんでした"
+            + "\n\n"
+            + error.message
+        );
+    } finally {
+        replaceTrackButton.disabled =
+            !hasLoadedTrack();
+    }
 }
 
 export function initializeToolbar() {
@@ -1173,6 +1359,18 @@ export function initializeToolbar() {
         "click",
         handleToggleSelectedCritical
     );
+
+    openFileButton.addEventListener(
+        "click",
+        handleOpenFile
+    );
+    
+    replaceTrackButton.addEventListener(
+        "click",
+        handleReplaceTrack
+    );
+    
+    updateLoadedFileControls();
     
     setHistoryChangeCallback(
         updateHistoryControls

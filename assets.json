@@ -1,6 +1,5 @@
 {
     "sounds": {
-        "track": "input/track.wav",
         "metronomeAccent": "source/metronome_accent.mp3",
         "metronomeBeat": "source/metronome_beat.mp3",
         "answer": "source/answer.mp3"

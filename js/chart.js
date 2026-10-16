@@ -1150,32 +1150,43 @@ export function pasteClipboardNotes(
 ) {
     if (
         !state.chart ||
-        state.selection.clipboard
-            .length === 0
+        state.selection.clipboard.length === 0
     ) {
-        return false;
+        return {
+            pastedCount: 0,
+            skippedCount: 0
+        };
     }
 
     const numericBaseTick =
         Number(baseTick);
 
     if (
-        !Number.isFinite(
-            numericBaseTick
-        ) ||
+        !Number.isFinite(numericBaseTick) ||
         numericBaseTick < 0
     ) {
-        return false;
+        return {
+            pastedCount: 0,
+            skippedCount:
+                state.selection.clipboard
+                    .length
+        };
     }
 
     const pastedNotes = [];
+
+    let skippedCount = 0;
 
     const sortedClipboard =
         [...state.selection.clipboard]
             .sort((first, second) => {
                 return (
-                    first.relativeTick
-                    - second.relativeTick
+                    Number(
+                        first.relativeTick
+                    )
+                    - Number(
+                        second.relativeTick
+                    )
                 );
             });
 
@@ -1183,30 +1194,43 @@ export function pasteClipboardNotes(
         const clipboardNote
         of sortedClipboard
     ) {
+        const relativeTick =
+            Number(
+                clipboardNote.relativeTick
+            );
+
+        if (
+            !Number.isFinite(relativeTick)
+        ) {
+            skippedCount += 1;
+            continue;
+        }
+
+        const tick =
+            numericBaseTick
+            + relativeTick;
+
         const rawNote = {
             lane:
                 Number(
                     clipboardNote.lane
                 ),
-        
+
             tick,
+
             type:
                 clipboardNote.type
         };
-        
-        if (
-            clipboardNote.type === "long" ||
-            clipboardNote.type
-                === "critical_long"
-        ) {
+
+        if (isHoldNote(clipboardNote)) {
             rawNote.duration =
                 Number(
                     clipboardNote.duration
                 );
         }
-        
-        let canPlace = false;
-        
+
+        let canPlace;
+
         if (isHoldNote(rawNote)) {
             canPlace =
                 canPlaceHoldNote(
@@ -1222,36 +1246,40 @@ export function pasteClipboardNotes(
                     rawNote.tick
                 );
         }
-        
+
         if (!canPlace) {
+            skippedCount += 1;
             continue;
         }
-        
+
         const pastedNote =
             prepareNote(rawNote);
-        
+
         state.chart.notes.push(
             pastedNote
         );
-        
+
         pastedNotes.push(
             pastedNote
         );
     }
 
-    if (pastedNotes.length === 0) {
-        return false;
+    if (pastedNotes.length > 0) {
+        sortChartNotes();
+
+        state.selection.notes =
+            pastedNotes;
+
+        state.selection.anchorNote =
+            pastedNotes[0] ?? null;
     }
 
-    sortChartNotes();
+    return {
+        pastedCount:
+            pastedNotes.length,
 
-    state.selection.notes =
-        pastedNotes;
-
-    state.selection.anchorNote =
-        pastedNotes[0] ?? null;
-
-    return true;
+        skippedCount
+    };
 }
 
 const HORIZONTAL_FLIP_LANES = {
