@@ -14,12 +14,20 @@ export const assets = {
 };
 
 export const state = {
-    currentScene: SCENE.LOADING,
+    currentScene:
+        SCENE.LOADING,
 
     chart: null,
 
     noteSpeed: 600,
     gridDivision: 16,
+
+    fileSession: {
+        trackFileName: null,
+        chartFileName: null,
+        trackObjectUrl: null,
+        isChartDirty: false
+    },
 
     placement: {
         baseType: "tap",
@@ -36,10 +44,8 @@ export const state = {
     audioPreview: {
         metronomeEnabled: true,
         answerEnabled: true,
-
         metronomeVolume: 1.5,
         answerVolume: 1.5,
-
         offsetMilliseconds: 0
     },
 

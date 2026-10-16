@@ -33,9 +33,9 @@ export const LANE_INFO = {
 };
 
 export const LANE_COLUMN_COUNT = 2;
-export const LANE_WIDTH = 80;
+export const LANE_WIDTH = 110;
 
-export const NOTE_WIDTH = 60;
+export const NOTE_WIDTH = 80;
 export const NOTE_HEIGHT = 12;
 export const HOLD_BODY_WIDTH = 36;
 
