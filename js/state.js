@@ -26,7 +26,8 @@ export const state = {
         trackFileName: null,
         chartFileName: null,
         trackObjectUrl: null,
-        isChartDirty: false
+        isChartDirty: false,
+        chartFileHandle: null
     },
 
     placement: {

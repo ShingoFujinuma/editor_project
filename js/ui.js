@@ -34,6 +34,7 @@ import {
 } from "./state.js";
 
 import {
+    overwriteChartJson,
     saveChartAsJson
 } from "./storage.js";
 
@@ -326,6 +327,11 @@ const replaceTrackButton =
 const loadedFileStatus =
     document.getElementById(
         "loaded-file-status"
+    );
+
+const overwriteChartButton =
+    document.getElementById(
+        "overwrite-chart-button"
     );
 
 const MIN_PREVIEW_OFFSET_MS = -1000;
@@ -713,21 +719,34 @@ export async function handleSaveChart() {
 
     try {
         const result =
-            await saveChartAsJson();
+            await overwriteChartJson();
 
         updateSaveStatus(
             "保存しました",
             "saved"
         );
 
-        showSuccess(
-            "譜面ファイルを保存しました"
-        );
+        updateLoadedFileControls();
+
+        if (
+            result.method
+            === "overwrite"
+        ) {
+            showSuccess(
+                "譜面ファイルを上書き保存しました"
+            );
+        } else {
+            showSuccess(
+                "譜面ファイルを保存しました"
+            );
+        }
 
         console.log(
             "譜面を保存しました",
             result
         );
+
+        return true;
     } catch (error) {
         if (
             error instanceof DOMException &&
@@ -737,7 +756,7 @@ export async function handleSaveChart() {
                 "保存をキャンセル"
             );
 
-            return;
+            return false;
         }
 
         updateSaveStatus(
@@ -749,6 +768,60 @@ export async function handleSaveChart() {
             error,
             "譜面を保存できませんでした"
         );
+
+        return false;
+    } finally {
+        saveChartButton.disabled =
+            false;
+    }
+}
+
+export async function handleSaveChartAs() {
+    updateSaveStatus(
+        "保存中..."
+    );
+
+    saveChartButton.disabled =
+        true;
+
+    try {
+        await saveChartAsJson();
+
+        updateSaveStatus(
+            "保存しました",
+            "saved"
+        );
+
+        updateLoadedFileControls();
+
+        showSuccess(
+            "譜面ファイルを保存しました"
+        );
+
+        return true;
+    } catch (error) {
+        if (
+            error instanceof DOMException &&
+            error.name === "AbortError"
+        ) {
+            updateSaveStatus(
+                "保存をキャンセル"
+            );
+
+            return false;
+        }
+
+        updateSaveStatus(
+            "保存エラー",
+            "error"
+        );
+
+        showError(
+            error,
+            "譜面を保存できませんでした"
+        );
+
+        return false;
     } finally {
         saveChartButton.disabled =
             false;
@@ -1306,9 +1379,14 @@ export function initializeToolbar() {
         }
     );
 
-    saveChartButton.addEventListener(
+    overwriteChartButton.addEventListener(
         "click",
         handleSaveChart
+    );
+    
+    saveChartButton.addEventListener(
+        "click",
+        handleSaveChartAs
     );
 
     togglePanelButton.addEventListener(

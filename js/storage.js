@@ -138,6 +138,76 @@ export function createChartForExport() {
     };
 }
 
+function createChartJsonText() {
+    const exportChart =
+        createChartForExport();
+
+    const validationErrors =
+        validateChartForExport(
+            exportChart
+        );
+
+    if (
+        validationErrors.length > 0
+    ) {
+        throw new Error(
+            validationErrors.join("\n")
+        );
+    }
+
+    return {
+        exportChart,
+
+        jsonText:
+            JSON.stringify(
+                exportChart,
+                null,
+                2
+            )
+    };
+}
+
+async function writeJsonToFileHandle(
+    fileHandle,
+    jsonText
+) {
+    if (!fileHandle) {
+        throw new Error(
+            "上書き保存先が設定されていません"
+        );
+    }
+
+    const permissionGranted =
+        await ensureWritePermission(
+            fileHandle
+        );
+
+    if (!permissionGranted) {
+        throw new Error(
+            "ファイルへの書込みが許可されませんでした"
+        );
+    }
+
+    const writable =
+        await fileHandle.createWritable();
+
+    try {
+        await writable.write(
+            jsonText
+        );
+
+        await writable.close();
+    } catch (error) {
+        try {
+            await writable.abort();
+        } catch {
+            // 元のエラーを優先
+        }
+
+        throw error;
+    }
+}
+
 export function validateChartForExport(
     chart
 ) {
@@ -307,7 +377,8 @@ async function saveWithFilePicker(
 ) {
     const fileHandle =
         await window.showSaveFilePicker({
-            id: "rhythm-chart-json",
+            id:
+                "rhythm-chart-save",
 
             suggestedName:
                 createSuggestedFileName(),
@@ -326,15 +397,10 @@ async function saveWithFilePicker(
             ]
         });
 
-    const writable =
-        await fileHandle
-            .createWritable();
-
-    await writable.write(
+    await writeJsonToFileHandle(
+        fileHandle,
         jsonText
     );
-
-    await writable.close();
 
     return fileHandle;
 }
@@ -384,45 +450,36 @@ function saveWithDownload(
 }
 
 export async function saveChartAsJson() {
-    const exportChart =
-        createChartForExport();
-
-    const validationErrors =
-        validateChartForExport(
-            exportChart
-        );
-
-    if (
-        validationErrors.length > 0
-    ) {
-        console.error(
-            "譜面を保存できません",
-            validationErrors
-        );
-
-        throw new Error(
-            validationErrors.join("\n")
-        );
-    }
-
-    const jsonText =
-        JSON.stringify(
-            exportChart,
-            null,
-            2
-        );
+    const {
+        exportChart,
+        jsonText
+    } = createChartJsonText();
 
     if (
         "showSaveFilePicker"
         in window
     ) {
-        await saveWithFilePicker(
-            jsonText
-        );
+        const fileHandle =
+            await saveWithFilePicker(
+                jsonText
+            );
+
+        state.fileSession
+            .chartFileHandle =
+            fileHandle;
+
+        state.fileSession
+            .chartFileName =
+            fileHandle.name;
 
         return {
-            method: "file-picker",
-            chart: exportChart
+            method:
+                "file-picker",
+
+            chart:
+                exportChart,
+
+            fileHandle
         };
     }
 
@@ -431,7 +488,87 @@ export async function saveChartAsJson() {
     );
 
     return {
-        method: "download",
-        chart: exportChart
+        method:
+            "download",
+
+        chart:
+            exportChart,
+
+        fileHandle:
+            null
     };
+}
+
+export function hasWritableChartFile() {
+    return Boolean(
+        state.fileSession
+            .chartFileHandle
+    );
+}
+
+export async function overwriteChartJson() {
+    const fileHandle =
+        state.fileSession
+            .chartFileHandle;
+
+    if (!fileHandle) {
+        return await saveChartAsJson();
+    }
+
+    const {
+        exportChart,
+        jsonText
+    } = createChartJsonText();
+
+    await writeJsonToFileHandle(
+        fileHandle,
+        jsonText
+    );
+
+    return {
+        method:
+            "overwrite",
+
+        chart:
+            exportChart,
+
+        fileHandle
+    };
+}
+
+async function ensureWritePermission(
+    fileHandle
+) {
+    if (
+        !fileHandle ||
+        typeof fileHandle.queryPermission
+            !== "function"
+    ) {
+        return true;
+    }
+
+    const options = {
+        mode: "readwrite"
+    };
+
+    const currentPermission =
+        await fileHandle.queryPermission(
+            options
+        );
+
+    if (
+        currentPermission === "granted"
+    ) {
+        return true;
+    }
+
+    const requestedPermission =
+        await fileHandle.requestPermission(
+            options
+        );
+
+    return (
+        requestedPermission
+        === "granted"
+    );
 }

@@ -269,25 +269,18 @@ export async function openChartFile() {
         );
     }
 
-    const shouldOpen =
-        window.confirm(
-            "現在の譜面を別の譜面で置き換えます。"
-            + "\n保存していない変更は失われます。"
-            + "\n続行しますか？"
-        );
+    const selected =
+        await selectChartFile();
 
-    if (!shouldOpen) {
+    if (!selected) {
         return false;
     }
 
     const file =
-        await selectLocalFile(
-            "application/json,.json"
-        );
+        selected.file;
 
-    if (!file) {
-        return false;
-    }
+    const fileHandle =
+        selected.fileHandle;
 
     let parsedChart;
 
@@ -325,15 +318,15 @@ export async function openChartFile() {
         .chartFileName =
         file.name;
 
+    state.fileSession
+        .chartFileHandle =
+        fileHandle;
+
     state.placement.holdStart =
         null;
 
     clearSelection();
 
-    /*
-     * 拍子はゲーム用JSONへ入っていないため、
-     * 新しい譜面を開いたら初期値へ戻す。
-     */
     state.editorSettings
         .timeSignatures = [
             {
@@ -355,13 +348,80 @@ export async function openChartFile() {
             fileName:
                 file.name,
 
+            hasWritableHandle:
+                fileHandle !== null,
+
             noteCount:
-                state.chart.notes
-                    .length
+                state.chart.notes.length
         }
     );
 
     return true;
+}
+
+async function selectChartFile() {
+    if (
+        "showOpenFilePicker"
+        in window
+    ) {
+        try {
+            const handles =
+                await window.showOpenFilePicker({
+                    id:
+                        "rhythm-chart-open",
+
+                    multiple:
+                        false,
+
+                    types: [
+                        {
+                            description:
+                                "譜面JSONファイル",
+
+                            accept: {
+                                "application/json": [
+                                    ".json"
+                                ]
+                            }
+                        }
+                    ]
+                });
+
+            const fileHandle =
+                handles[0];
+
+            const file =
+                await fileHandle.getFile();
+
+            return {
+                file,
+                fileHandle
+            };
+        } catch (error) {
+            if (
+                error instanceof DOMException &&
+                error.name === "AbortError"
+            ) {
+                return null;
+            }
+
+            throw error;
+        }
+    }
+
+    const file =
+        await selectLocalFile(
+            "application/json,.json"
+        );
+
+    if (!file) {
+        return null;
+    }
+
+    return {
+        file,
+        fileHandle: null
+    };
 }
 
 export async function openNextFile() {
