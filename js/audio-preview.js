@@ -62,7 +62,36 @@ async function createBufferFromAudioElement(
 }
 
 export async function initializeAudioPreview() {
-    await reinitializeAudioPreview();
+    if (!audioContext) {
+        audioContext =
+            new AudioContext();
+    }
+
+    const results =
+        await Promise.all([
+            createBufferFromAudioElement(
+                assets.sounds.metronomeAccent
+            ),
+
+            createBufferFromAudioElement(
+                assets.sounds.metronomeBeat
+            ),
+
+            createBufferFromAudioElement(
+                assets.sounds.answer
+            )
+        ]);
+
+    audioBuffers.metronomeAccent =
+        results[0];
+
+    audioBuffers.metronomeBeat =
+        results[1];
+
+    audioBuffers.answer =
+        results[2];
+
+    rebuildPreviewEvents();
 
     console.log(
         "プレビュー音声の準備が完了しました"
@@ -276,9 +305,7 @@ export function rebuildPreviewEvents() {
 
     if (
         track &&
-        Number.isFinite(
-            track.duration
-        )
+        Number.isFinite(track.duration)
     ) {
         maximumTick =
             secondsToTick(
@@ -286,13 +313,12 @@ export function rebuildPreviewEvents() {
             );
     }
 
-    for (const note of state.chart.notes) {
+    for (
+        const note of state.chart.notes
+    ) {
         const noteEndTick =
             Number(note.tick)
-            + Number(
-                note.duration
-                ?? 0
-            );
+            + Number(note.duration ?? 0);
 
         if (
             Number.isFinite(noteEndTick)
@@ -305,21 +331,28 @@ export function rebuildPreviewEvents() {
         }
     }
 
-    previewEvents = [
-        ...createMetronomeEvents(
+    const metronomeEvents =
+        createMetronomeEvents(
             maximumTick
-        ),
-        ...createAnswerEvents()
-    ].sort((first, second) => {
-        return (
-            first.time
-            - second.time
         );
+
+    const answerEvents =
+        createAnswerEvents();
+
+    previewEvents = [
+        ...metronomeEvents,
+        ...answerEvents
+    ].sort((first, second) => {
+        return first.time - second.time;
     });
 
     eventsDirty = false;
 
     resetPreviewPosition();
+
+    console.log(
+        `音声プレビューイベント数: ${previewEvents.length}`
+    );
 }
 
 export function markPreviewEventsDirty() {
@@ -559,57 +592,4 @@ export function refreshPreviewEvents() {
 
     rebuildPreviewEvents();
     resetPreviewPosition();
-}
-
-
-
-export async function reinitializeAudioPreview() {
-    if (!audioContext) {
-        audioContext =
-            new AudioContext();
-    }
-
-    if (
-        audioContext.state
-        === "suspended"
-    ) {
-        try {
-            await audioContext.resume();
-        } catch {
-            // ユーザー操作前なら suspended のままで問題ない
-        }
-    }
-
-    if (
-        !audioBuffers
-            .metronomeAccent
-    ) {
-        audioBuffers
-            .metronomeAccent =
-            await createBufferFromAudioElement(
-                assets.sounds
-                    .metronomeAccent
-            );
-    }
-
-    if (
-        !audioBuffers
-            .metronomeBeat
-    ) {
-        audioBuffers
-            .metronomeBeat =
-            await createBufferFromAudioElement(
-                assets.sounds
-                    .metronomeBeat
-            );
-    }
-
-    if (!audioBuffers.answer) {
-        audioBuffers.answer =
-            await createBufferFromAudioElement(
-                assets.sounds.answer
-            );
-    }
-
-    refreshPreviewEvents();
 }

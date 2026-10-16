@@ -139,58 +139,58 @@ export function createEmptyChart(
     };
 }
 
-// export async function loadChart() {
-//     const path =
-//         "input/chart.json";
+export async function loadChart() {
+    const path =
+        "input/chart.json";
 
-//     const response =
-//         await fetch(path);
+    const response =
+        await fetch(path);
 
-//     if (response.status === 404) {
-//         console.warn(
-//             "chart.jsonが見つからないため、"
-//             + "空の譜面を作成します"
-//         );
+    if (response.status === 404) {
+        console.warn(
+            "chart.jsonが見つからないため、"
+            + "空の譜面を作成します"
+        );
 
-//         state.chart =
-//             createEmptyChart();
+        state.chart =
+            createEmptyChart();
 
-//         return;
-//     }
+        return;
+    }
 
-//     if (!response.ok) {
-//         throw new Error(
-//             `譜面を読み込めません: `
-//             + `${response.status} `
-//             + `${response.statusText}`
-//         );
-//     }
+    if (!response.ok) {
+        throw new Error(
+            `譜面を読み込めません: `
+            + `${response.status} `
+            + `${response.statusText}`
+        );
+    }
 
-//     let loadedChart;
+    let loadedChart;
 
-//     try {
-//         loadedChart =
-//             await response.json();
-//     } catch (error) {
-//         throw new Error(
-//             "chart.jsonのJSON形式が壊れています",
-//             {
-//                 cause: error
-//             }
-//         );
-//     }
+    try {
+        loadedChart =
+            await response.json();
+    } catch (error) {
+        throw new Error(
+            "chart.jsonのJSON形式が壊れています",
+            {
+                cause: error
+            }
+        );
+    }
 
-//     if (
-//         !loadedChart ||
-//         !Array.isArray(
-//             loadedChart.notes
-//         )
-//     ) {
-//         throw new Error(
-//             "chart.jsonのnotesが配列ではありません"
-//         );
-//     }
+    if (
+        !loadedChart ||
+        !Array.isArray(
+            loadedChart.notes
+        )
+    ) {
+        throw new Error(
+            "chart.jsonのnotesが配列ではありません"
+        );
+    }
 
-//     state.chart =
-//         loadedChart;
-// }
+    state.chart =
+        loadedChart;
+}
