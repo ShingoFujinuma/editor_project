@@ -583,7 +583,7 @@ function drawMeasureNumber(
         "rgba(120, 205, 255, 1)";
 
     ctx.font =
-        "bold 16px sans-serif";
+        "bold 32px sans-serif";
 
     ctx.textAlign =
         "right";
@@ -665,7 +665,7 @@ function drawTimeSignatureLabel(
         "rgba(120, 205, 255, 1)";
 
     ctx.font =
-        "bold 14px sans-serif";
+        "bold 32px sans-serif";
 
     ctx.textAlign =
         "left";
@@ -1236,121 +1236,165 @@ function drawEditorInfo() {
             }
         ).length;
 
-    let status = "PAUSED";
+    const playbackRate =
+        Number(
+            track.playbackRate
+            ?? state.playback.playbackRate
+            ?? 1
+        );
+
+    let status = "停止中";
 
     if (!track.paused) {
-        status = "PLAYING";
+        status = "再生中";
     }
+
+    const infos=[
+        `再生時間: ${track.currentTime.toFixed(3)} s`,
+        `再生状態: ${status}`,
+        `スクロール速度: ${state.noteSpeed} px/s`,
+        `グリッド: ${getGridDivision()}分音符`,
+        `ノーツ数: ${playableNoteCount}`,
+        `BPM: ${currentBpm}`,
+        `拍子: ${currentSignature.numerator}/${currentSignature.denominator}`,
+        `tick: ${currentTick.toFixed(3)}`,
+        `プレビュー音声オフセット: ${state.audioPreview.offsetMilliseconds} ms`,
+        `再生速度: ${playbackRate.toFixed(2)}倍`,
+        ``,
+        `QWER: ノーツ種類変更/選択`,
+        `F: 左右反転 / G: 上下反転`,
+        `Ctrl+Wheel: スクロール速度変更`,
+        `Alt+ホイール: グリッド幅変更`,
+        `Alt+A/D: 再生速度変更`,
+        `Ctrl+S: 保存`,
+        `Esc: ホールド配置キャンセル`,
+        `Ctrl+Z: 元に戻す`,
+        `Ctrl+Y / Ctrl+Shift+Z: やり直す`
+    ];
 
     ctx.fillStyle = "white";
     ctx.textAlign = "left";
-    ctx.font = "20px sans-serif";
+    ctx.font = "40px sans-serif";
 
-    ctx.fillText(
-        `Time: ${track.currentTime.toFixed(3)} s`,
-        20,
-        30
-    );
+    for (let i = 0; i < infos.length; i++) {
+        ctx.fillText(
+            infos[i],
+            40,
+            50 + i * 50
+        );
+    }
 
-    ctx.fillText(
-        `Status: ${status}`,
-        20,
-        60
-    );
+    // ctx.fillText(
+    //     `Time: ${track.currentTime.toFixed(3)} s`,
+    //     40,
+    //     50
+    // );
 
-    ctx.fillText(
-        `Speed: ${state.noteSpeed}`,
-        20,
-        90
-    );
+    // ctx.fillText(
+    //     `Status: ${status}`,
+    //     40,
+    //     100
+    // );
 
-    ctx.fillText(
-        `Grid: 1/${getGridDivision()}`,
-        20,
-        120
-    );
+    // ctx.fillText(
+    //     `Speed: ${state.noteSpeed}`,
+    //     20,
+    //     90
+    // );
 
-    ctx.fillText(
-        `Notes: ${playableNoteCount}`,
-        20,
-        150
-    );
+    // ctx.fillText(
+    //     `Grid: 1/${getGridDivision()}`,
+    //     20,
+    //     120
+    // );
 
-    ctx.fillText(
-        `BPM: ${currentBpm}`,
-        20,
-        180
-    );
+    // ctx.fillText(
+    //     `Notes: ${playableNoteCount}`,
+    //     20,
+    //     150
+    // );
+
+    // ctx.fillText(
+    //     `BPM: ${currentBpm}`,
+    //     20,
+    //     180
+    // );
     
-    ctx.fillText(
-        `Time Signature: ${currentSignature.numerator}/${currentSignature.denominator}`,
-        20,
-        210
-    );
+    // ctx.fillText(
+    //     `Time Signature: ${currentSignature.numerator}/${currentSignature.denominator}`,
+    //     20,
+    //     210
+    // );
     
-    ctx.fillText(
-        `Tick: ${currentTick.toFixed(3)}`,
-        20,
-        240
-    );
+    // ctx.fillText(
+    //     `Tick: ${currentTick.toFixed(3)}`,
+    //     20,
+    //     240
+    // );
 
-    ctx.fillText(
-        `Preview offset: ${
-            state.audioPreview
-                .offsetMilliseconds
-        } ms`,
-        20,
-        270
-    );
+    // ctx.fillText(
+    //     `Preview offset: ${
+    //         state.audioPreview
+    //             .offsetMilliseconds
+    //     } ms`,
+    //     20,
+    //     270
+    // );
+
+    // ctx.fillText(
+    //     `Playback: ${playbackRate.toFixed(2)}x`,
+    //     20,
+    //     300
+    // );
 
 
-    ctx.fillText(
-        `QWER: Change note type`,
-        20,
-        310
-    );
+    // ctx.fillText(
+    //     `QWER: Change note type`,
+    //     20,
+    //     310
+    // );
 
-    ctx.fillText(
-        `F: Flip horizontal / G: Flip vertical`,
-        20,
-        340
-    )
+    // ctx.fillText(
+    //     `F: Flip horizontal / G: Flip vertical`,
+    //     20,
+    //     340
+    // )
 
-    ctx.fillText(
-        `Alt+Wheel: Glid`,
-        20,
-        370
-    );
+    // ctx.fillText(
+    //     `Alt+Wheel: Glid`,
+    //     20,
+    //     370
+    // );
 
-    ctx.fillText(
-        `Ctrl+Wheel: Speed`,
-        20,
-        400
-    );
+    // ctx.fillText(
+    //     `Ctrl+Wheel: Speed`,
+    //     20,
+    //     400
+    // );
 
-    ctx.fillText(
-        `Ctrl+S: Save`,
-        20,
-        430
-    )
+    // ctx.fillText(
+    //     `Ctrl+S: Save`,
+    //     20,
+    //     430
+    // )
 
-    ctx.fillText(
-        `Esc: Cancel to place Hold`,
-        20,
-        460
-    )
+    // ctx.fillText(
+    //     `Esc: Cancel to place Hold`,
+    //     20,
+    //     460
+    // )
 
-    ctx.fillText(
-        `Ctrl+Z: Undo`,
-        20,
-        490
-    )
+    // ctx.fillText(
+    //     `Ctrl+Z: Undo`,
+    //     20,
+    //     490
+    // )
 
-    ctx.fillText(
-        `Ctrl+Y / Ctrl+Shift+Z: Redo`,
-        20,
-        520
-    )
+    // ctx.fillText(
+    //     `Ctrl+Y / Ctrl+Shift+Z: Redo`,
+    //     20,
+    //     520
+    // )
 }
 
 export function drawLoading(){
