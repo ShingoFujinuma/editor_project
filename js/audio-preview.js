@@ -65,13 +65,30 @@ export async function initializeAudioPreview() {
     await reinitializeAudioPreview();
 
     console.log(
-        "プレビュー音声の準備が完了しました"
+        "プレビュー音声を準備しました",
+        {
+            audioContextState:
+                audioContext?.state
+        }
     );
 }
 
 export async function resumeAudioPreview() {
     if (!audioContext) {
-        return;
+        await reinitializeAudioPreview();
+    }
+
+    if (!audioContext) {
+        return false;
+    }
+
+    if (
+        audioContext.state
+        === "closed"
+    ) {
+        throw new Error(
+            "AudioContextはすでに閉じられています"
+        );
     }
 
     if (
@@ -80,6 +97,11 @@ export async function resumeAudioPreview() {
     ) {
         await audioContext.resume();
     }
+
+    return (
+        audioContext.state
+        === "running"
+    );
 }
 
 const MAX_PREVIEW_VOLUME=10;
@@ -575,46 +597,44 @@ export function refreshPreviewEvents() {
 
 export async function reinitializeAudioPreview() {
     if (!audioContext) {
-        audioContext =
-            new AudioContext();
-    }
+        const AudioContextClass =
+            window.AudioContext
+            || window.webkitAudioContext;
 
-    if (
-        audioContext.state
-        === "suspended"
-    ) {
-        try {
-            await audioContext.resume();
-        } catch {
-            // ユーザー操作前なら suspended のままで問題ない
+        if (!AudioContextClass) {
+            throw new Error(
+                "このブラウザはWeb Audio APIに対応していません"
+            );
         }
+
+        audioContext =
+            new AudioContextClass();
     }
 
     if (
-        !audioBuffers
-            .metronomeAccent
+        !audioBuffers.metronomeAccent &&
+        assets.sounds.metronomeAccent
     ) {
-        audioBuffers
-            .metronomeAccent =
+        audioBuffers.metronomeAccent =
             await createBufferFromAudioElement(
-                assets.sounds
-                    .metronomeAccent
+                assets.sounds.metronomeAccent
             );
     }
 
     if (
-        !audioBuffers
-            .metronomeBeat
+        !audioBuffers.metronomeBeat &&
+        assets.sounds.metronomeBeat
     ) {
-        audioBuffers
-            .metronomeBeat =
+        audioBuffers.metronomeBeat =
             await createBufferFromAudioElement(
-                assets.sounds
-                    .metronomeBeat
+                assets.sounds.metronomeBeat
             );
     }
 
-    if (!audioBuffers.answer) {
+    if (
+        !audioBuffers.answer &&
+        assets.sounds.answer
+    ) {
         audioBuffers.answer =
             await createBufferFromAudioElement(
                 assets.sounds.answer

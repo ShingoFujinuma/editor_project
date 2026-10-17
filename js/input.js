@@ -244,35 +244,45 @@ async function togglePlayback() {
         getTrack();
 
     if (!track) {
-        console.log(
-            "先に音源ファイルを読み込んでください"
+        showWarning(
+            "先に音源ファイルを読み込んでください。",
+            "音源がありません"
         );
-
-        // handleOpenFile();
 
         return;
     }
 
     if (track.paused) {
-        await resumeAudioPreview();
-
-        resetPreviewPosition();
-
         try {
+            const audioReady =
+                await resumeAudioPreview();
+
+            if (!audioReady) {
+                showWarning(
+                    "プレビュー音声を開始できませんでした。"
+                    + "ページ内を一度クリックしてから、"
+                    + "もう一度再生してください。",
+                    "音声を開始できません"
+                );
+            }
+
+            resetPreviewPosition();
+
             await track.play();
         } catch (error) {
-            console.error(
-                "楽曲を再生できませんでした",
-                error
+            showError(
+                error,
+                "楽曲を再生できませんでした"
             );
         }
-    } else {
-        track.pause();
 
-        resetPreviewPosition();
-
-        updateTimingControls();
+        return;
     }
+
+    track.pause();
+
+    resetPreviewPosition();
+    updateTimingControls();
 }
 
 function selectTapPlacementMode() {
@@ -318,6 +328,8 @@ function isButtonElement(element) {
 }
 
 function handleKeyDown(event) {
+    unlockAudioFromUserGesture();
+    
     if (
         state.currentScene
         !== SCENE.EDITOR
@@ -1248,6 +1260,8 @@ function handleMouseDown(event) {
 function handlePointerDown(
     event
 ) {
+    unlockAudioFromUserGesture();
+
     if (
         event.button === 0 &&
         state.placement.baseType
@@ -1979,4 +1993,31 @@ function cancelDragSelection(
 
     state.selection.dragRect =
         null;
+}
+
+let audioUnlockCompleted = false;
+
+async function unlockAudioFromUserGesture() {
+    if (audioUnlockCompleted) {
+        return;
+    }
+
+    try {
+        const resumed =
+            await resumeAudioPreview();
+
+        if (resumed) {
+            audioUnlockCompleted =
+                true;
+
+            console.log(
+                "AudioContextを有効化しました"
+            );
+        }
+    } catch (error) {
+        console.warn(
+            "AudioContextをまだ有効化できません",
+            error
+        );
+    }
 }
