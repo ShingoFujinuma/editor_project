@@ -446,3 +446,13 @@ canvas:focus{
         opacity 150ms ease,
         transform 150ms ease;
 }
+
+#track-volume-slider {
+    width: 140px;
+}
+
+#track-volume-display {
+    min-width: 42px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}

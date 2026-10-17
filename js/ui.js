@@ -334,6 +334,16 @@ const overwriteChartButton =
         "overwrite-chart-button"
     );
 
+const trackVolumeSlider =
+    document.getElementById(
+        "track-volume-slider"
+    );
+
+const trackVolumeDisplay =
+    document.getElementById(
+        "track-volume-display"
+    );
+
 const MIN_PREVIEW_OFFSET_MS = -1000;
 const MAX_PREVIEW_OFFSET_MS = 1000;
 const PREVIEW_OFFSET_STEP_MS = 10;
@@ -1246,6 +1256,80 @@ async function handleReplaceTrack() {
     }
 }
 
+function clampTrackVolume(value) {
+    const numericValue =
+        Number(value);
+
+    if (!Number.isFinite(numericValue)) {
+        return 1;
+    }
+
+    return Math.max(
+        0,
+        Math.min(
+            numericValue,
+            1
+        )
+    );
+}
+
+export function applyTrackVolume() {
+    const volume =
+        clampTrackVolume(
+            state.playback.trackVolume
+        );
+
+    state.playback.trackVolume =
+        volume;
+
+    const track =
+        getTrack();
+
+    if (track) {
+        track.volume =
+            volume;
+    }
+}
+
+function updateTrackVolumeControl() {
+    const volume =
+        clampTrackVolume(
+            state.playback.trackVolume
+        );
+
+    trackVolumeSlider.value =
+        String(volume);
+
+    trackVolumeDisplay.textContent =
+        volume.toFixed(2);
+
+    applyTrackVolume();
+}
+
+function initializeTrackVolumeControl() {
+    updateTrackVolumeControl();
+
+    trackVolumeSlider.addEventListener(
+        "input",
+        () => {
+            const volume =
+                clampTrackVolume(
+                    trackVolumeSlider.value
+                );
+
+            state.playback.trackVolume =
+                volume;
+
+            trackVolumeDisplay.textContent =
+                volume.toFixed(2);
+
+            applyTrackVolume();
+
+            saveEditorSettings();
+        }
+    );
+}
+
 export function initializeToolbar() {
     gridDownButton.addEventListener(
         "click",
@@ -1456,11 +1540,14 @@ export function initializeToolbar() {
 
     initializeNoteTypeControls();
     initializeAudioPreviewControls();
+    initializeTrackVolumeControl();
 
     updateGridControls();
     updateSpeedControls();
 
     updateSelectionControls();
+    updateTimingControls();
+    updateTrackVolumeControl();
 }
 
 function initializeNoteTypeControls() {

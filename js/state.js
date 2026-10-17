@@ -22,12 +22,15 @@ export const state = {
     noteSpeed: 600,
     gridDivision: 16,
 
+    playback: {
+        trackVolume: 1
+    },
+
     fileSession: {
         trackFileName: null,
         chartFileName: null,
-        trackObjectUrl: null,
-        isChartDirty: false,
-        chartFileHandle: null
+        chartFileHandle: null,
+        trackObjectUrl: null
     },
 
     placement: {
@@ -46,8 +49,10 @@ export const state = {
     audioPreview: {
         metronomeEnabled: true,
         answerEnabled: true,
+
         metronomeVolume: 1.5,
         answerVolume: 1.5,
+
         offsetMilliseconds: 0
     },
 

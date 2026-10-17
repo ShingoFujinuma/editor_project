@@ -69,6 +69,12 @@ function createSettingsData() {
         noteSpeed:
             state.noteSpeed,
 
+        playback: {
+            trackVolume:
+                state.playback
+                    .trackVolume
+        },
+
         audioPreview: {
             metronomeEnabled:
                 state.audioPreview
@@ -272,6 +278,23 @@ function applySavedSettings(
                 state.audioPreview
                     .offsetMilliseconds
             );
+
+        const savedPlayback =
+            savedSettings.playback;
+        
+        if (
+            savedPlayback &&
+            typeof savedPlayback
+                === "object"
+        ) {
+            state.playback.trackVolume =
+                clampNumber(
+                    savedPlayback.trackVolume,
+                    0,
+                    1,
+                    state.playback.trackVolume
+                );
+        }
     }
 }
 
