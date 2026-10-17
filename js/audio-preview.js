@@ -422,9 +422,13 @@ function schedulePreviewEvents() {
             );
     }
 
+    const playbackRate =
+        getCurrentPlaybackRate();
+
     const scheduleEndTime =
         currentTrackTime
-        + SCHEDULE_LOOKAHEAD_SECONDS;
+        + SCHEDULE_LOOKAHEAD_SECONDS
+        * playbackRate;
 
     while (
         eventIndex
@@ -447,11 +451,19 @@ function schedulePreviewEvents() {
             effectiveEventTime
             >= currentTrackTime - 0.01
         ) {
+            const trackTimeDifference =
+                effectiveEventTime
+                - currentTrackTime;
+
+            const previewOffsetSeconds =
+                getPreviewOffsetSeconds();
+            
             const delay =
                 Math.max(
                     0,
-                    effectiveEventTime
-                    - currentTrackTime
+                    trackTimeDifference
+                    / playbackRate
+                    + previewOffsetSeconds
                 );
 
             const audioContextTime =
@@ -497,8 +509,7 @@ function schedulePreviewEvents() {
         eventIndex++;
     }
 
-    previousTrackTime =
-        currentTrackTime;
+    previousTrackTime = currentTrackTime;
 }
 
 export function startAudioPreviewScheduler() {
@@ -546,8 +557,7 @@ function getPreviewOffsetSeconds() {
 }
 
 function getEffectiveEventTime(event) {
-    return event.time
-        + getPreviewOffsetSeconds();
+    return event.time;
 }
 
 export function notifyPreviewOffsetChanged() {
@@ -612,4 +622,26 @@ export async function reinitializeAudioPreview() {
     }
 
     refreshPreviewEvents();
+}
+
+function getCurrentPlaybackRate() {
+    const track =
+        getTrack();
+
+    const playbackRate =
+        Number(
+            track?.playbackRate
+            ?? state.playback
+                .playbackRate
+            ?? 1
+        );
+
+    if (
+        !Number.isFinite(playbackRate) ||
+        playbackRate <= 0
+    ) {
+        return 1;
+    }
+
+    return playbackRate;
 }

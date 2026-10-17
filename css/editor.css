@@ -456,3 +456,13 @@ canvas:focus{
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
+
+#playback-rate-slider {
+    width: 140px;
+}
+
+#playback-rate-display {
+    min-width: 52px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}

@@ -66,7 +66,9 @@ import {
     handleFlipHorizontal,
     handleFlipVertical,
     handleToggleSelectedCritical,
-    handleOpenFile
+    handleOpenFile,
+    changePlaybackRate,
+    setPlaybackRate
 } from "./ui.js";
 
 import {
@@ -422,6 +424,32 @@ function handleKeyDown(event) {
         event.preventDefault();
     
         handleOpenFile();
+    
+        return;
+    }
+
+    if (
+        event.altKey &&
+        event.code === "KeyA" &&
+        !event.repeat &&
+        !isEditingText
+    ) {
+        event.preventDefault();
+    
+        changePlaybackRate(-0.05);
+    
+        return;
+    }
+    
+    if (
+        event.altKey &&
+        event.code === "KeyD" &&
+        !event.repeat &&
+        !isEditingText
+    ) {
+        event.preventDefault();
+    
+        changePlaybackRate(0.05);
     
         return;
     }

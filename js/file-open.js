@@ -162,7 +162,7 @@ export async function openTrackFile() {
     const objectUrl =
         URL.createObjectURL(file);
 
-        const track =
+    const track =
         new Audio();
     
     track.preload =
@@ -179,6 +179,21 @@ export async function openTrackFile() {
                 1
             )
         );
+    
+    track.playbackRate =
+        Math.max(
+            0.25,
+            Math.min(
+                Number(
+                    state.playback
+                        .playbackRate
+                ),
+                2
+            )
+        );
+    
+    track.preservesPitch =
+        true;
     
     track.src =
         objectUrl;

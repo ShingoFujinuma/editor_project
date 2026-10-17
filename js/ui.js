@@ -344,9 +344,38 @@ const trackVolumeDisplay =
         "track-volume-display"
     );
 
+const playbackRateSlider =
+    document.getElementById(
+        "playback-rate-slider"
+    );
+
+const playbackRateDisplay =
+    document.getElementById(
+        "playback-rate-display"
+    );
+
+const playbackRateDownButton =
+    document.getElementById(
+        "playback-rate-down-button"
+    );
+
+const playbackRateResetButton =
+    document.getElementById(
+        "playback-rate-reset-button"
+    );
+
+const playbackRateUpButton =
+    document.getElementById(
+        "playback-rate-up-button"
+    );
+
 const MIN_PREVIEW_OFFSET_MS = -1000;
 const MAX_PREVIEW_OFFSET_MS = 1000;
 const PREVIEW_OFFSET_STEP_MS = 10;
+
+const MIN_PLAYBACK_RATE = 0.25;
+const MAX_PLAYBACK_RATE = 2;
+const PLAYBACK_RATE_STEP = 0.05;
 
 export function updateGridControls() {
     gridDisplay.textContent =
@@ -1306,6 +1335,160 @@ function updateTrackVolumeControl() {
     applyTrackVolume();
 }
 
+function clampPlaybackRate(value) {
+    const numericValue =
+        Number(value);
+
+    if (!Number.isFinite(numericValue)) {
+        return 1;
+    }
+
+    return Math.max(
+        MIN_PLAYBACK_RATE,
+        Math.min(
+            numericValue,
+            MAX_PLAYBACK_RATE
+        )
+    );
+}
+
+function roundPlaybackRate(value) {
+    return Number(
+        Number(value).toFixed(2)
+    );
+}
+
+export function applyPlaybackRate() {
+    const playbackRate =
+        roundPlaybackRate(
+            clampPlaybackRate(
+                state.playback
+                    .playbackRate
+            )
+        );
+
+    state.playback.playbackRate =
+        playbackRate;
+
+    const track =
+        getTrack();
+
+    if (!track) {
+        return;
+    }
+
+    track.playbackRate =
+        playbackRate;
+
+    /*
+     * 速度を変更しても、
+     * 元の音程を可能な範囲で維持する。
+     */
+    track.preservesPitch =
+        true;
+}
+
+function updatePlaybackRateControl() {
+    const playbackRate =
+        roundPlaybackRate(
+            clampPlaybackRate(
+                state.playback
+                    .playbackRate
+            )
+        );
+
+    playbackRateSlider.value =
+        String(playbackRate);
+
+    playbackRateDisplay.textContent =
+        `${playbackRate.toFixed(2)}x`;
+
+    playbackRateResetButton.textContent =
+        `${playbackRate.toFixed(2)}x`;
+
+    playbackRateDownButton.disabled =
+        playbackRate
+        <= MIN_PLAYBACK_RATE;
+
+    playbackRateUpButton.disabled =
+        playbackRate
+        >= MAX_PLAYBACK_RATE;
+
+    applyPlaybackRate();
+}
+
+export function setPlaybackRate(
+    value
+) {
+    const playbackRate =
+        roundPlaybackRate(
+            clampPlaybackRate(value)
+        );
+
+    state.playback.playbackRate =
+        playbackRate;
+
+    updatePlaybackRateControl();
+
+    saveEditorSettings();
+
+    /*
+     * 予約済みのプレビュー音を
+     * 新しい倍率に合わせ直す。
+     */
+    refreshPreviewEvents();
+}
+
+export function changePlaybackRate(
+    amount
+) {
+    setPlaybackRate(
+        state.playback.playbackRate
+        + amount
+    );
+}
+
+function initializePlaybackRateControl() {
+    updatePlaybackRateControl();
+
+    playbackRateSlider.addEventListener(
+        "input",
+        () => {
+            setPlaybackRate(
+                playbackRateSlider.value
+            );
+        }
+    );
+
+    playbackRateDownButton
+        .addEventListener(
+            "click",
+            () => {
+                changePlaybackRate(
+                    -PLAYBACK_RATE_STEP
+                );
+            }
+        );
+
+    playbackRateResetButton
+        .addEventListener(
+            "click",
+            () => {
+                setPlaybackRate(1);
+            }
+        );
+
+    playbackRateUpButton
+        .addEventListener(
+            "click",
+            () => {
+                changePlaybackRate(
+                    PLAYBACK_RATE_STEP
+                );
+            }
+        );
+}
+
 function initializeTrackVolumeControl() {
     updateTrackVolumeControl();
 
@@ -1541,6 +1724,7 @@ export function initializeToolbar() {
     initializeNoteTypeControls();
     initializeAudioPreviewControls();
     initializeTrackVolumeControl();
+    initializePlaybackRateControl();
 
     updateGridControls();
     updateSpeedControls();

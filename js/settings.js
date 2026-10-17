@@ -72,7 +72,11 @@ function createSettingsData() {
         playback: {
             trackVolume:
                 state.playback
-                    .trackVolume
+                    .trackVolume,
+            
+            playbackRate:
+                state.playback
+                    .playbackRate
         },
 
         audioPreview: {
@@ -293,6 +297,14 @@ function applySavedSettings(
                     0,
                     1,
                     state.playback.trackVolume
+                );
+
+            state.playback.playbackRate =
+                clampNumber(
+                    savedPlayback.playbackRate,
+                    0.25,
+                    4,
+                    state.playback.playbackRate
                 );
         }
     }

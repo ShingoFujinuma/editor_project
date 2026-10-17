@@ -56,6 +56,11 @@ export const state = {
         offsetMilliseconds: 0
     },
 
+    playback: {
+        trackVolume: 1,
+        playbackRate: 1
+    },
+
     editorSettings: {
         timeSignatures: [
             {
