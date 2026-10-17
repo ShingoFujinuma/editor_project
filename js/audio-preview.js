@@ -75,11 +75,18 @@ export async function initializeAudioPreview() {
 
 export async function resumeAudioPreview() {
     if (!audioContext) {
-        await reinitializeAudioPreview();
-    }
+        const AudioContextClass =
+            window.AudioContext
+            || window.webkitAudioContext;
 
-    if (!audioContext) {
-        return false;
+        if (!AudioContextClass) {
+            throw new Error(
+                "このブラウザはWeb Audio APIに対応していません"
+            );
+        }
+
+        audioContext =
+            new AudioContextClass();
     }
 
     if (
@@ -87,7 +94,7 @@ export async function resumeAudioPreview() {
         === "closed"
     ) {
         throw new Error(
-            "AudioContextはすでに閉じられています"
+            "AudioContextが閉じられています"
         );
     }
 
