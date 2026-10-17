@@ -1,7 +1,3 @@
-# 読み込んだ音源と譜面
-input/track.wav
-input/chart.json
-
 # Windows
 Thumbs.db
 Desktop.ini
